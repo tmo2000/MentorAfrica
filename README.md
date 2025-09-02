@@ -21,7 +21,6 @@ This project is built with **Next.js 14, TailwindCSS, and shadcn/ui**.
 - **Framework:** [Next.js](https://nextjs.org/) (App Router)
 - **Styling:** [Tailwind CSS](https://tailwindcss.com/)
 - **UI Components:** [shadcn/ui](https://ui.shadcn.com/) + [lucide-react icons](https://lucide.dev/)
-- **Deployment:** [Vercel](https://vercel.com/) (recommended)
 
 ---
 
