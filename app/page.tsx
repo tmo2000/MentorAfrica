@@ -141,7 +141,7 @@ export default function HomePage() {
             <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader className="flex flex-col items-center text-center">
                 <img
-                  src="/mentors/mentor2.jpg"
+                  src="/mentor2.jpg"
                   alt="Mentor 2"
                   className="w-48 h-48 rounded-full mb-4 object-cover"
                 />
@@ -155,7 +155,7 @@ export default function HomePage() {
             <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader className="flex flex-col items-center text-center">
                 <img
-                  src="/mentors/mentor3.jpg"
+                  src="/mentor3.jpg"
                   alt="Mentor 3"
                   className="w-48 h-48 rounded-full mb-4 object-cover"
                 />
@@ -164,6 +164,13 @@ export default function HomePage() {
                 <Badge className="mt-2 bg-purple-100 text-purple-700">Data Science</Badge>
               </CardHeader>
             </Card>
+          </div>
+          <div className="flex justify-center mt-8">
+            <Link href="/page2">
+              <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+                See More
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
