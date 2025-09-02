@@ -24,23 +24,6 @@ This project is built with **Next.js 14, TailwindCSS, and shadcn/ui**.
 
 ---
 
-## 📂 Project Structure
-
-.
-├── public/
-│ └── pictures/ # Mentor profile images (accessible via /pictures/mentor1.jpg)
-├── src/
-│ ├── app/ # Next.js App Router pages
-│ ├── components/ # Reusable components (cards, buttons, etc.)
-│ └── styles/ # Global styles
-├── package.json
-└── README.md
-
-yaml
-Copy code
-
----
-
 ## 🚀 Getting Started
 
 ### 1. Clone the repo
