@@ -105,9 +105,9 @@ export default function MentorsPage() {
                   <SelectContent>
                     <SelectItem value="All Expertise">All Expertise</SelectItem>
                     {allExpertise.map((skill) => (
-                      <Select key={skill} value={skill}>
+                      <SelectItem key={skill} value={skill}>
                         {skill}
-                      </Select Item> 
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
