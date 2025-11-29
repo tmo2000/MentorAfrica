@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -17,10 +18,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Search, Filter, MoreHorizontal, UserCheck, UserX, Edit, Trash2, Mail } from "lucide-react"
+import { Search, Filter, MoreHorizontal, UserCheck, UserX, Edit, Trash2, Mail, ArrowLeft, UserPlus } from "lucide-react"
 
 // Mock users data
-const mockUsers = [
+const initialUsers = [
   {
     id: "1",
     name: "Sarah Johnson",
@@ -85,6 +86,20 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [users, setUsers] = useState(initialUsers)
+  const [newUser, setNewUser] = useState<{
+    name: string
+    email: string
+    role: string
+    status: string
+    bio?: string
+    location?: string
+    timezone?: string
+    expertise?: string
+    maxMentees?: number
+    programDuration?: string
+    experience?: string
+  }>({ name: "", email: "", role: "mentee", status: "active" })
 
   if (!user) {
     router.push("/auth/login")
@@ -96,7 +111,7 @@ export default function AdminUsersPage() {
     return null
   }
 
-  const filteredUsers = mockUsers.filter((u) => {
+  const filteredUsers = users.filter((u) => {
     const matchesSearch =
       u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -139,11 +154,11 @@ export default function AdminUsersPage() {
   }
 
   const userStats = {
-    total: mockUsers.length,
-    mentors: mockUsers.filter((u) => u.role === "mentor").length,
-    mentees: mockUsers.filter((u) => u.role === "mentee").length,
-    active: mockUsers.filter((u) => u.status === "active").length,
-    pending: mockUsers.filter((u) => u.status === "pending").length,
+    total: users.length,
+    mentors: users.filter((u) => u.role === "mentor").length,
+    mentees: users.filter((u) => u.role === "mentee").length,
+    active: users.filter((u) => u.status === "active").length,
+    pending: users.filter((u) => u.status === "pending").length,
   }
 
   return (
@@ -151,9 +166,20 @@ export default function AdminUsersPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">User Management</h1>
-            <p className="text-xl text-gray-600">Manage platform users and their access</p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">User Management</h1>
+              <p className="text-xl text-gray-600">Manage platform users and their access</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className="flex items-center gap-2" onClick={() => router.back()}>
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+              <Button variant="secondary" onClick={() => router.push("/")}>
+                Back to website
+              </Button>
+            </div>
           </div>
 
           {/* Stats Cards */}
@@ -189,6 +215,140 @@ export default function AdminUsersPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Add user */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Add user / mentor</CardTitle>
+              <CardDescription>Manually create accounts with profile details for mentors</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <Input
+                  placeholder="Full name"
+                  value={newUser.name}
+                  onChange={(e) => setNewUser((p) => ({ ...p, name: e.target.value }))}
+                />
+                <Input
+                  placeholder="Email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser((p) => ({ ...p, email: e.target.value }))}
+                />
+                <Select value={newUser.role} onValueChange={(value) => setNewUser((p) => ({ ...p, role: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mentee">Mentee</SelectItem>
+                    <SelectItem value="mentor">Mentor</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={newUser.status} onValueChange={(value) => setNewUser((p) => ({ ...p, status: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {newUser.role === "mentor" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input
+                    placeholder="Bio"
+                    value={newUser.bio || ""}
+                    onChange={(e) => setNewUser((p) => ({ ...p, bio: e.target.value }))}
+                  />
+                  <Input
+                    placeholder="Location"
+                    value={newUser.location || ""}
+                    onChange={(e) => setNewUser((p) => ({ ...p, location: e.target.value }))}
+                  />
+                  <Input
+                    placeholder="Timezone"
+                    value={newUser.timezone || ""}
+                    onChange={(e) => setNewUser((p) => ({ ...p, timezone: e.target.value }))}
+                  />
+                  <Input
+                    placeholder="Expertise (comma-separated)"
+                    value={newUser.expertise || ""}
+                    onChange={(e) => setNewUser((p) => ({ ...p, expertise: e.target.value }))}
+                  />
+                  <Input
+                    placeholder="Max mentees"
+                    type="number"
+                    value={(newUser.maxMentees as any) || ""}
+                    onChange={(e) => setNewUser((p) => ({ ...p, maxMentees: Number(e.target.value) || 0 }))}
+                  />
+                  <Select
+                    value={(newUser.programDuration as any) || "3"}
+                    onValueChange={(value) => setNewUser((p) => ({ ...p, programDuration: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Program duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="3">3 months</SelectItem>
+                      <SelectItem value="6">6 months</SelectItem>
+                      <SelectItem value="12">12 months</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Textarea
+                    placeholder="Experience"
+                    value={newUser.experience || ""}
+                    onChange={(e) => setNewUser((p) => ({ ...p, experience: e.target.value }))}
+                    className="md:col-span-2"
+                  />
+                </div>
+              )}
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => {
+                    if (!newUser.name.trim() || !newUser.email.trim()) return
+                    const now = new Date().toISOString().slice(0, 10)
+                    setUsers((prev) => [
+                      {
+                        id: `u-${Date.now()}`,
+                        name: newUser.name.trim(),
+                        email: newUser.email.trim(),
+                        role: newUser.role,
+                        status: newUser.status,
+                        joinDate: now,
+                        lastLogin: now,
+                        programs: 0,
+                        rating: null,
+                        ...(newUser.role === "mentor"
+                          ? {
+                              bio: newUser.bio || "",
+                              location: newUser.location || "",
+                              timezone: newUser.timezone || "",
+                              expertise:
+                                newUser.expertise
+                                  ?.split(",")
+                                  .map((s: string) => s.trim())
+                                  .filter(Boolean) || [],
+                              maxMentees: newUser.maxMentees || 0,
+                              programDuration: newUser.programDuration || "3",
+                              experience: newUser.experience || "",
+                            }
+                          : {}),
+                      },
+                      ...prev,
+                    ])
+                    setNewUser({ name: "", email: "", role: "mentee", status: "active" })
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Add user
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Filters */}
           <Card className="mb-6">
@@ -234,11 +394,6 @@ export default function AdminUsersPage() {
                     <SelectItem value="suspended">Suspended</SelectItem>
                   </SelectContent>
                 </Select>
-
-                <Button className="flex items-center gap-2">
-                  <UserCheck className="h-4 w-4" />
-                  Add User
-                </Button>
               </div>
             </CardContent>
           </Card>

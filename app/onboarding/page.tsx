@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, ArrowRight, CheckCircle, User, Target, Settings } from "lucide-react"
 
 export default function OnboardingPage() {
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
@@ -41,7 +41,7 @@ export default function OnboardingPage() {
     return null
   }
 
-  const totalSteps = user.role === "admin" ? 2 : 3
+  const totalSteps = user.role === "admin" ? 1 : 3
 
   const expertiseOptions = [
     "Software Engineering",
@@ -80,12 +80,25 @@ export default function OnboardingPage() {
   }
 
   const handleComplete = () => {
-    // Mock completion - in real app, this would save to database
-    console.log("[v0] Onboarding completed with data:", formData)
+    if (user.role === "mentor") {
+      const required =
+        formData.bio.trim() &&
+        formData.location.trim() &&
+        formData.timezone.trim() &&
+        formData.expertise.length > 0 &&
+        formData.programDuration
+      if (!required) {
+        alert("Please complete bio, location, timezone, expertise, and program duration.")
+        return
+      }
+    }
 
-    // Update user onboarding status
-    const updatedUser = { ...user, isOnboarded: true }
-    localStorage.setItem("mentorconnect_user", JSON.stringify(updatedUser))
+    // Save profile locally
+    updateUser({
+      isOnboarded: true,
+      profile: { ...formData },
+      mentorApprovalStatus: user.role === "mentor" ? "pending" : user.mentorApprovalStatus,
+    })
 
     // Redirect based on role
     switch (user.role) {
@@ -114,6 +127,62 @@ export default function OnboardingPage() {
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
+        if (user.role === "admin") {
+          return (
+            <div className="space-y-6">
+              <div className="text-center space-y-2">
+                <Settings className="h-12 w-12 text-blue-600 mx-auto" />
+                <h2 className="text-2xl font-bold text-gray-900">Admin Configuration</h2>
+                <p className="text-gray-600">Set up your administrative preferences</p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="department">Department</Label>
+                  <Select
+                    value={formData.department}
+                    onValueChange={(value) => setFormData({ ...formData, department: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hr">Human Resources</SelectItem>
+                      <SelectItem value="it">Information Technology</SelectItem>
+                      <SelectItem value="operations">Operations</SelectItem>
+                      <SelectItem value="management">Management</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Administrative Permissions</Label>
+                  <div className="space-y-2 mt-2">
+                    {["User Management", "Program Oversight", "Analytics Access", "System Configuration"].map(
+                      (permission) => (
+                        <div key={permission} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={permission}
+                            checked={formData.permissions.includes(permission)}
+                            onCheckedChange={() =>
+                              toggleArrayItem(formData.permissions, permission, (items) =>
+                                setFormData({ ...formData, permissions: items }),
+                              )
+                            }
+                          />
+                          <Label htmlFor={permission} className="text-sm">
+                            {permission}
+                          </Label>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        }
+
         return (
           <div className="space-y-6">
             <div className="text-center space-y-2">
@@ -292,61 +361,6 @@ export default function OnboardingPage() {
                         </Label>
                       </div>
                     ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        } else {
-          // Admin role - final step
-          return (
-            <div className="space-y-6">
-              <div className="text-center space-y-2">
-                <Settings className="h-12 w-12 text-blue-600 mx-auto" />
-                <h2 className="text-2xl font-bold text-gray-900">Admin Configuration</h2>
-                <p className="text-gray-600">Set up your administrative preferences</p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="department">Department</Label>
-                  <Select
-                    value={formData.department}
-                    onValueChange={(value) => setFormData({ ...formData, department: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hr">Human Resources</SelectItem>
-                      <SelectItem value="it">Information Technology</SelectItem>
-                      <SelectItem value="operations">Operations</SelectItem>
-                      <SelectItem value="management">Management</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label>Administrative Permissions</Label>
-                  <div className="space-y-2 mt-2">
-                    {["User Management", "Program Oversight", "Analytics Access", "System Configuration"].map(
-                      (permission) => (
-                        <div key={permission} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={permission}
-                            checked={formData.permissions.includes(permission)}
-                            onCheckedChange={() =>
-                              toggleArrayItem(formData.permissions, permission, (items) =>
-                                setFormData({ ...formData, permissions: items }),
-                              )
-                            }
-                          />
-                          <Label htmlFor={permission} className="text-sm">
-                            {permission}
-                          </Label>
-                        </div>
-                      ),
-                    )}
                   </div>
                 </div>
               </div>

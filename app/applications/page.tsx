@@ -322,11 +322,16 @@ export default function ApplicationsPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Applications</h1>
-            <p className="text-xl text-gray-600">
-              {user.role === "mentor" ? "Review applications from mentees" : "Track your mentor applications"}
-            </p>
+          <div className="flex items-center justify-between mb-8">
+            <div className="text-center flex-1">
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">Applications</h1>
+              <p className="text-xl text-gray-600">
+                {user.role === "mentor" ? "Review applications from mentees" : "Track your mentor applications"}
+              </p>
+            </div>
+            <Button variant="ghost" onClick={() => router.back()}>
+              ← Back
+            </Button>
           </div>
 
           {user.role === "mentor" ? (

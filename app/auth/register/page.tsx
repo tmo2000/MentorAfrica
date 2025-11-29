@@ -24,6 +24,14 @@ export default function RegisterPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const preselectedRole = searchParams.get("role") as UserRole
+  const lockRole = searchParams.get("roleLocked") === "true" || preselectedRole === "admin"
+
+  // ensure role respects preselected/locked
+  useState(() => {
+    if (preselectedRole) {
+      setRole(preselectedRole)
+    }
+  })
 
   useState(() => {
     if (preselectedRole && ["mentor", "mentee"].includes(preselectedRole)) {
@@ -36,11 +44,11 @@ export default function RegisterPage() {
     setError("")
 
     const success = await register(email, password, name, role)
-    if (success) {
-      router.push("/onboarding")
-    } else {
+    if (!success) {
       setError("Registration failed. Please try again.")
+      return
     }
+    router.push("/onboarding")
   }
 
   return (
@@ -64,8 +72,8 @@ export default function RegisterPage() {
             <CardTitle className="text-2xl">Create your account</CardTitle>
             <CardDescription>Join thousands of professionals in meaningful mentorship relationships</CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <Input
@@ -102,31 +110,33 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div className="space-y-3">
-                <Label>I want to join as a:</Label>
-                <RadioGroup value={role} onValueChange={(value) => setRole(value as UserRole)}>
-                  <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                    <RadioGroupItem value="mentee" id="mentee" />
-                    <GraduationCap className="w-5 h-5 text-blue-600" />
-                    <div className="flex-1">
-                      <Label htmlFor="mentee" className="font-medium cursor-pointer">
-                        Mentee
-                      </Label>
-                      <p className="text-sm text-gray-600">I want to learn and grow with guidance</p>
+              {!lockRole && (
+                <div className="space-y-3">
+                  <Label>I want to join as a:</Label>
+                  <RadioGroup value={role} onValueChange={(value) => setRole(value as UserRole)}>
+                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
+                      <RadioGroupItem value="mentee" id="mentee" />
+                      <GraduationCap className="w-5 h-5 text-blue-600" />
+                      <div className="flex-1">
+                        <Label htmlFor="mentee" className="font-medium cursor-pointer">
+                          Mentee
+                        </Label>
+                        <p className="text-sm text-gray-600">I want to learn and grow with guidance</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                    <RadioGroupItem value="mentor" id="mentor" />
-                    <UserCheck className="w-5 h-5 text-indigo-600" />
-                    <div className="flex-1">
-                      <Label htmlFor="mentor" className="font-medium cursor-pointer">
-                        Mentor
-                      </Label>
-                      <p className="text-sm text-gray-600">I want to share my expertise and guide others</p>
+                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
+                      <RadioGroupItem value="mentor" id="mentor" />
+                      <UserCheck className="w-5 h-5 text-indigo-600" />
+                      <div className="flex-1">
+                        <Label htmlFor="mentor" className="font-medium cursor-pointer">
+                          Mentor
+                        </Label>
+                        <p className="text-sm text-gray-600">I want to share my expertise and guide others</p>
+                      </div>
                     </div>
-                  </div>
-                </RadioGroup>
-              </div>
+                  </RadioGroup>
+                </div>
+              )}
 
               {error && (
                 <Alert className="border-red-200 bg-red-50">

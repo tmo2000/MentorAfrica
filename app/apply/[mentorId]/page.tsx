@@ -14,28 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ArrowLeft, Send, User, Calendar, Star, MapPin, Clock } from "lucide-react"
-
-// Mock mentor data (would come from database)
-const mockMentors = {
-  "1": {
-    id: "1",
-    name: "Sarah Johnson",
-    bio: "Experienced software engineer with 10+ years in tech leadership. Passionate about helping others grow their careers.",
-    location: "San Francisco, CA",
-    timezone: "PST",
-    expertise: ["Software Engineering", "Leadership", "Product Management"],
-    maxMentees: 3,
-    currentMentees: 2,
-    programDuration: "6",
-    rating: 4.9,
-    totalMentees: 15,
-    avatar: null,
-    available: true,
-  },
-}
+import { mockMentors } from "@/lib/mock-mentors"
 
 export default function ApplyPage() {
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
   const router = useRouter()
   const params = useParams()
   const mentorId = params.mentorId as string
@@ -52,8 +34,9 @@ export default function ApplyPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [savedDraft, setSavedDraft] = useState(false)
 
-  const mentor = mockMentors[mentorId as keyof typeof mockMentors]
+  const mentor = mockMentors.find((m) => m.id === mentorId)
 
   if (!user) {
     router.push("/auth/login")
@@ -61,7 +44,7 @@ export default function ApplyPage() {
   }
 
   if (user.role !== "mentee") {
-    router.push("/")
+    router.push("/mentor/dashboard")
     return null
   }
 
@@ -95,6 +78,22 @@ export default function ApplyPage() {
 
     setIsSubmitting(false)
     setIsSubmitted(true)
+    updateUser({
+      appliedMentorId: mentorId,
+      appliedMentorName: mentor.name,
+      applicationStatus: "submitted",
+      applicationNote: applicationData.motivation,
+    })
+  }
+
+  const handleSaveDraft = () => {
+    updateUser({
+      appliedMentorId: mentorId,
+      appliedMentorName: mentor.name,
+      applicationStatus: "draft",
+      applicationNote: applicationData.motivation || "Draft application in progress",
+    })
+    setSavedDraft(true)
   }
 
   if (isSubmitted) {
@@ -291,7 +290,10 @@ export default function ApplyPage() {
                       />
                     </div>
 
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex gap-3 pt-4 flex-wrap">
+                      <Button type="button" variant="outline" onClick={handleSaveDraft} className="flex items-center gap-2">
+                        Save draft
+                      </Button>
                       <Button type="submit" disabled={isSubmitting} className="flex items-center gap-2">
                         {isSubmitting ? (
                           <>
@@ -308,6 +310,7 @@ export default function ApplyPage() {
                       <Button type="button" variant="outline" onClick={() => router.push("/mentors")}>
                         Cancel
                       </Button>
+                      {savedDraft && <span className="text-xs text-green-700">Draft saved</span>}
                     </div>
                   </form>
                 </CardContent>

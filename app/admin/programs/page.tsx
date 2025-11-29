@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Search, Filter, Calendar, TrendingUp, Award, Eye, AlertTriangle, CheckCircle } from "lucide-react"
+import { Search, Filter, Calendar, TrendingUp, Award, Eye, AlertTriangle, CheckCircle, ArrowLeft } from "lucide-react"
 
 // Mock programs data
 const mockPrograms = [
@@ -152,9 +152,20 @@ export default function AdminProgramsPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Program Management</h1>
-            <p className="text-xl text-gray-600">Monitor and manage all mentorship programs</p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">Program Management</h1>
+              <p className="text-xl text-gray-600">Monitor and manage all mentorship programs</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className="flex items-center gap-2" onClick={() => router.back()}>
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+              <Button variant="secondary" onClick={() => router.push("/")}>
+                Back to website
+              </Button>
+            </div>
           </div>
 
           {/* Stats Cards */}

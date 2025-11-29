@@ -1,14 +1,35 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowRight, Users, Target, Star, TrendingUp } from "lucide-react"
+import { ArrowRight, Users, Target, Star, TrendingUp, LogOut, Settings, User } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 import { mockMentors } from "@/lib/mock-mentors"
 import { MentorCard } from "@/components/mentor-card"
+import { useAuth } from "@/components/auth-provider"
 
 export default function HomePage() {
+  const { user, logout } = useAuth()
+  const router = useRouter()
   const previewMentors = mockMentors.slice(0, 3)
+
+  const initials = user?.name
+    ?.split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -17,7 +38,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-              <Link href="app/page.tsx" className="flex items-center space-x-2">
+              <Link href="/" className="flex items-center space-x-2">
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
                     <Users className="w-5 h-5 text-white" />
                   </div>
@@ -31,17 +52,68 @@ export default function HomePage() {
               <Link href="/mentors">
                 <Button variant="ghost">Our Mentors</Button>
               </Link>
-              <Link href="/auth/login">
+              <Link href="/faq">
                 <Button variant="ghost">FAQs</Button>
               </Link>
-              <Link href="/auth/login">
-                <Button variant="ghost">Sign In</Button>
-              </Link>
-              <Link href="/auth/register">
-                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-                  Get Started
-                </Button>
-              </Link>
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.avatar || undefined} alt={user.name} />
+                        <AvatarFallback>{initials}</AvatarFallback>
+                      </Avatar>
+                      <span className="hidden sm:inline text-sm font-medium">{user.name}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuLabel>
+                      <div className="text-sm font-semibold">{user.name}</div>
+                      <div className="text-xs text-gray-500 capitalize">{user.role}</div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href={user.role === "mentor" ? "/mentor/dashboard" : "/settings"}
+                        className="flex items-center gap-2"
+                      >
+                        <Settings className="h-4 w-4" />
+                        Profile & Settings
+                      </Link>
+                    </DropdownMenuItem>
+                    {user.role !== "mentor" && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/settings" className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Track application
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="flex items-center gap-2 text-red-600"
+                      onSelect={() => {
+                        logout()
+                        router.push("/")
+                      }}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <>
+                  <Link href="/auth/login">
+                    <Button variant="ghost">Sign In</Button>
+                  </Link>
+                  <Link href="/auth/register">
+                    <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+                      Get Started
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

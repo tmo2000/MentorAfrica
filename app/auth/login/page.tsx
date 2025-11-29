@@ -20,17 +20,19 @@ export default function LoginPage() {
   const { login, isLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const role = searchParams.get("role") as UserRole
+  const preselectedRole = searchParams.get("role") as UserRole
+  const lockRole = searchParams.get("roleLocked") === "true" || preselectedRole === "admin"
+  const [selectedRole, setSelectedRole] = useState<UserRole | undefined>(preselectedRole)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
-    const success = await login(email, password, role)
+    const success = await login(email, password, selectedRole)
     if (success) {
-      router.push("/dashboard")
+      router.push("/")
     } else {
-      setError("Invalid credentials. Try mentor@example.com, mentee@example.com, or admin@example.com")
+      setError("Invalid credentials. Try mentor@example.com, mentee@example.com, tobi@example.com, or admin@example.com")
     }
   }
 
@@ -53,9 +55,27 @@ export default function LoginPage() {
         <Card className="border-0 shadow-xl">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Welcome back</CardTitle>
-            <CardDescription>{role ? `Sign in to your ${role} account` : "Sign in to your account"}</CardDescription>
+            <CardDescription>
+              {selectedRole ? `Sign in to your ${selectedRole} account` : "Sign in to your account"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
+            {!lockRole && (
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {(["mentee", "mentor"] as UserRole[]).map((r) => (
+                  <Button
+                    key={r}
+                    type="button"
+                    variant={selectedRole === r ? "default" : "outline"}
+                    className="w-full capitalize"
+                    onClick={() => setSelectedRole(r)}
+                  >
+                    {r}
+                  </Button>
+                ))}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -98,10 +118,7 @@ export default function LoginPage() {
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Don't have an account?{" "}
-                <Link
-                  href={`/auth/register${role ? `?role=${role}` : ""}`}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
-                >
+                <Link href={`/auth/register${selectedRole ? `?role=${selectedRole}` : ""}`} className="text-blue-600 hover:text-blue-700 font-medium">
                   Sign up
                 </Link>
               </p>

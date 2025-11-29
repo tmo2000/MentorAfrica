@@ -11,12 +11,24 @@ export interface User {
   role: UserRole
   avatar?: string
   isOnboarded: boolean
+  appliedMentorId?: string | null
+  appliedMentorName?: string | null
+  applicationNote?: string | null
+  profile?: Record<string, any>
+  applicationStatus?: "none" | "draft" | "submitted" | "accepted" | "rejected"
+  mentorApprovalStatus?: "pending" | "approved" | "rejected"
 }
 
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string, role?: UserRole) => Promise<boolean>
-  register: (email: string, password: string, name: string, role: UserRole) => Promise<boolean>
+  register: (
+    email: string,
+    password: string,
+    name: string,
+    role: UserRole,
+    profile?: Record<string, any>
+  ) => Promise<boolean>
   logout: () => void
   updateUser: (updates: Partial<User>) => void
   isLoading: boolean
@@ -32,6 +44,25 @@ const mockUsers: User[] = [
     name: "Sarah Johnson",
     role: "mentor",
     isOnboarded: true,
+    appliedMentorId: null,
+    appliedMentorName: null,
+    applicationNote: null,
+    profile: {},
+    applicationStatus: "none",
+    mentorApprovalStatus: "approved",
+  },
+  {
+    id: "4",
+    email: "tobi@example.com",
+    name: "Tobi Olaide",
+    role: "mentor",
+    isOnboarded: true,
+    appliedMentorId: null,
+    appliedMentorName: null,
+    applicationNote: null,
+    profile: {},
+    applicationStatus: "none",
+    mentorApprovalStatus: "approved",
   },
   {
     id: "2",
@@ -39,6 +70,12 @@ const mockUsers: User[] = [
     name: "Alex Chen",
     role: "mentee",
     isOnboarded: true,
+    appliedMentorId: null,
+    appliedMentorName: null,
+    applicationNote: null,
+    profile: {},
+    applicationStatus: "none",
+    mentorApprovalStatus: "approved",
   },
   {
     id: "3",
@@ -80,7 +117,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false
   }
 
-  const register = async (email: string, password: string, name: string, role: UserRole): Promise<boolean> => {
+  const register = async (
+    email: string,
+    password: string,
+    name: string,
+    role: UserRole,
+    profile?: Record<string, any>
+  ): Promise<boolean> => {
     setIsLoading(true)
 
     // Mock registration
@@ -90,9 +133,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: Date.now().toString(),
       email,
       name,
-      role,
-      isOnboarded: false,
-    }
+    role,
+    isOnboarded: false,
+    appliedMentorId: null,
+    appliedMentorName: null,
+    applicationNote: null,
+    profile: profile || {},
+    applicationStatus: "none",
+    mentorApprovalStatus: role === "mentor" ? "pending" : "approved",
+  }
 
     setUser(newUser)
     localStorage.setItem("mentorconnect_user", JSON.stringify(newUser))
