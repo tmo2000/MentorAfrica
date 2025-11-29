@@ -4,7 +4,12 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowRight, Users, Target, Star, TrendingUp } from "lucide-react"
 import Link from "next/link"
 
+import { mockMentors } from "@/lib/mock-mentors"
+import { MentorCard } from "@/components/mentor-card"
+
 export default function HomePage() {
+  const previewMentors = mockMentors.slice(0, 3)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Header */}
@@ -20,6 +25,15 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="flex items-center space-x-4">
+              <Link href="/about">
+                <Button variant="ghost">About</Button>
+              </Link>
+              <Link href="/mentors">
+                <Button variant="ghost">Our Mentors</Button>
+              </Link>
+              <Link href="/auth/login">
+                <Button variant="ghost">FAQs</Button>
+              </Link>
               <Link href="/auth/login">
                 <Button variant="ghost">Sign In</Button>
               </Link>
@@ -42,8 +56,8 @@ export default function HomePage() {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Grow.</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto text-pretty">
-            Join the premier mentorship platform where experienced professionals guide the next generation of leaders
-            through structured, meaningful relationships.
+            A curated ecosystem of African excellence and diaspora wisdom where 
+            guidance is given out of love, responsibility, and cultural connection.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/auth/register?role=mentee">
@@ -125,50 +139,12 @@ export default function HomePage() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Mentor 1 */}
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader className="flex flex-col items-center text-center">
-                <img
-                  src= "/mentor1.jpg"
-                  alt="Mentor 1"
-                  className="w-48 h-48 rounded-full mb-4 object-cover"
-                />
-                <CardTitle className="text-xl">Temisola Olajide</CardTitle>
-                <CardDescription>Senior Software Engineer @ Google</CardDescription>
-                <Badge className="mt-2 bg-blue-100 text-blue-700">Software Engineering</Badge>
-              </CardHeader>
-            </Card>
-
-            {/* Mentor 2 */}
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader className="flex flex-col items-center text-center">
-                <img
-                  src="/mentor2.jpg"
-                  alt="Mentor 2"
-                  className="w-48 h-48 rounded-full mb-4 object-cover"
-                />
-                <CardTitle className="text-xl">Hakeem Olajide</CardTitle>
-                <CardDescription>Product Manager @ Microsoft</CardDescription>
-                <Badge className="mt-2 bg-green-100 text-green-700">Product Management</Badge>
-              </CardHeader>
-            </Card>
-
-            {/* Mentor 3 */}
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader className="flex flex-col items-center text-center">
-                <img
-                  src="/mentor3.jpg"
-                  alt="Mentor 3"
-                  className="w-48 h-48 rounded-full mb-4 object-cover"
-                />
-                <CardTitle className="text-xl">Funmi Olajide</CardTitle>
-                <CardDescription>Data Scientist @ Meta</CardDescription>
-                <Badge className="mt-2 bg-purple-100 text-purple-700">Data Science</Badge>
-              </CardHeader>
-            </Card>
+            {previewMentors.map((mentor) => (
+              <MentorCard key={mentor.id} mentor={mentor} />
+            ))}
           </div>
           <div className="flex justify-center mt-8">
-            <Link href="/page2">
+            <Link href="/mentors">
               <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
                 See More
               </Button>
