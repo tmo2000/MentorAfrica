@@ -99,7 +99,7 @@ export default function MentorsPage() {
                     </DropdownMenuItem>
                     {user.role !== "mentor" && (
                       <DropdownMenuItem asChild>
-                        <Link href="/settings" className="flex items-center gap-2">
+                        <Link href="/applications" className="flex items-center gap-2">
                           <User className="h-4 w-4" />
                           Track application
                         </Link>

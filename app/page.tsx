@@ -83,7 +83,7 @@ export default function HomePage() {
                     </DropdownMenuItem>
                     {user.role !== "mentor" && (
                       <DropdownMenuItem asChild>
-                        <Link href="/settings" className="flex items-center gap-2">
+                        <Link href="/applications" className="flex items-center gap-2">
                           <User className="h-4 w-4" />
                           Track application
                         </Link>
@@ -120,8 +120,16 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
+      <section className="relative overflow-hidden py-20 px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(59,130,246,0.14),transparent_32%),radial-gradient(circle_at_80%_0%,rgba(99,102,241,0.12),transparent_30%),radial-gradient(circle_at_50%_75%,rgba(59,130,246,0.12),transparent_35%)]" />
+          <div className="absolute left-1/2 top-1/2 h-[820px] w-[820px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[conic-gradient(at_50%_50%,rgba(59,130,246,0.12),rgba(99,102,241,0.18),rgba(59,130,246,0.12),rgba(99,102,241,0.05),rgba(59,130,246,0.12))] blur-3xl opacity-80" />
+          <div className="absolute -left-28 -top-24 h-[460px] w-[460px] rounded-full bg-[conic-gradient(at_50%_50%,rgba(59,130,246,0.3),rgba(99,102,241,0.08),rgba(59,130,246,0.18),rgba(99,102,241,0.05),rgba(59,130,246,0.28))] blur-3xl opacity-70" />
+          <div className="absolute -right-24 bottom-0 h-[420px] w-[420px] rounded-full bg-[conic-gradient(at_50%_50%,rgba(99,102,241,0.24),rgba(59,130,246,0.08),rgba(99,102,241,0.18),rgba(59,130,246,0.05),rgba(99,102,241,0.24))] blur-3xl opacity-70" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.6),transparent_55%)]" />
+        </div>
+
+        <div className="max-w-7xl mx-auto text-center relative">
           <Badge className="mb-6 bg-blue-100 text-blue-700 hover:bg-blue-100">Trusted by 10,000+ professionals</Badge>
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 text-balance">
             Connect. Learn.{" "}
