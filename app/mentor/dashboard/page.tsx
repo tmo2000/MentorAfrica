@@ -1,12 +1,13 @@
 "use client"
 
-import Link from "next/link"
-import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
+
+import { useAuth } from "@/components/auth-provider"
+import { SiteHeader } from "@/components/site-header"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import {
   Users,
@@ -18,18 +19,7 @@ import {
   Award,
   BookOpen,
   CheckCircle,
-  LogOut,
-  Settings,
-  User,
 } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 // Mock dashboard data
 const mockDashboardData = {
@@ -101,7 +91,7 @@ const mockDashboardData = {
 }
 
 export default function MentorDashboard() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
 
   if (!user) {
@@ -115,68 +105,10 @@ export default function MentorDashboard() {
   }
 
   const { stats, currentMentees, upcomingSessions, recentActivity } = mockDashboardData
-  const initials = user.name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <Link href="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-bold text-gray-900">MentorAfrica</span>
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/about">
-                <Button variant="ghost">About</Button>
-              </Link>
-              <Link href="/mentors">
-                <Button variant="ghost">Our Mentors</Button>
-              </Link>
-              <Link href="/faq">
-                <Button variant="ghost">FAQs</Button>
-              </Link>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.avatar || undefined} alt={user.name} />
-                      <AvatarFallback>{initials}</AvatarFallback>
-                    </Avatar>
-                    <span className="hidden sm:inline text-sm font-medium">{user.name}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuLabel>
-                    <div className="text-sm font-semibold">{user.name}</div>
-                    <div className="text-xs text-gray-500 capitalize">{user.role}</div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/mentor/dashboard" className="flex items-center gap-2">
-                      <Settings className="h-4 w-4" />
-                      Profile & Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="flex items-center gap-2 text-red-600" onSelect={() => logout()}>
-                    <LogOut className="h-4 w-4" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
