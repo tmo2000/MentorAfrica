@@ -2,16 +2,63 @@
 
 import Link from "next/link"
 import { ArrowRight, Target, Star, TrendingUp, Users } from "lucide-react"
+import { useEffect, useState } from "react"
 
 import { MentorCard } from "@/components/mentor-card"
 import { SiteHeader } from "@/components/site-header"
-import { mockMentors } from "@/lib/mock-mentors"
+import { supabase } from "@/lib/supabaseClient"
+import type { Mentor } from "@/lib/mock-mentors"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function HomePage() {
-  const previewMentors = mockMentors.slice(0, 3)
+  const [mentors, setMentors] = useState<Mentor[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+
+    ;(async () => {
+      const { data, error } = await supabase
+        .from("mentors")
+        .select("*")
+        .order("created_at", { ascending: false })
+
+      if (!isMounted) return
+
+      if (error) {
+        console.error("Supabase mentors error:", error)
+        setMentors([])
+        setLoading(false)
+        return
+      }
+
+      const mapped: Mentor[] = (data ?? []).map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        bio: m.bio ?? "",
+        location: m.location ?? "",
+        timezone: m.timezone ?? "",
+        expertise: Array.isArray(m.expertise) ? m.expertise : [],
+        maxMentees: m.max_mentees ?? 0,
+        currentMentees: m.current_mentees ?? 0,
+        programDuration: String(m.program_duration_months ?? ""),
+        rating: Number(m.rating ?? 0),
+        totalMentees: m.total_mentees ?? 0,
+        avatar: m.avatar || null,
+        available: Boolean(m.available),
+      }))
+
+      setMentors(mapped)
+      setLoading(false)
+    })()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -34,8 +81,8 @@ export default function HomePage() {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Grow.</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto text-pretty">
-            A curated ecosystem of African excellence and diaspora wisdom where 
-            guidance is given out of love, responsibility, and cultural connection.
+            A curated ecosystem of African excellence and diaspora wisdom where guidance is given out of love,
+            responsibility, and cultural connection.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/auth/register?role=mentee">
@@ -61,8 +108,8 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Why Choose MentorAfrica?</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Our platform is designed to create meaningful, structured mentorship relationships with young African mentees that drive real career
-              growth.
+              Our platform is designed to create meaningful, structured mentorship relationships with young African
+              mentees that drive real career growth.
             </p>
           </div>
 
@@ -105,22 +152,30 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-    
-      {/*Mentor's Section*/}
+
+      {/* Mentor's Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Meet Our Mentors</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Learn from top industry experts across Africa who are passionate about guiding the next generation of leaders.
+              Learn from top industry experts across Africa who are passionate about guiding the next generation of
+              leaders.
             </p>
           </div>
 
+          {loading ? (
+            <div className="text-center text-gray-600">Loading mentors...</div>
+          ) : mentors.length === 0 ? (
+            <div className="text-center text-gray-600">No mentors found yet.</div>
+          ) : null}
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {previewMentors.map((mentor) => (
+            {mentors.slice(0, 6).map((mentor) => (
               <MentorCard key={mentor.id} mentor={mentor} />
             ))}
           </div>
+
           <div className="flex justify-center mt-8">
             <Link href="/mentors">
               <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
@@ -152,7 +207,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
+        <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
@@ -160,9 +215,17 @@ export default function HomePage() {
             </div>
             <span className="text-xl font-bold">MentorAfrica</span>
           </div>
-          <p className="text-gray-400">© 2024 MentorAfrica. <br /> A solution by Ascentree Services Ltd. <br /> All rights reserved.</p>
+
+          <p className="text-gray-400">
+            © 2024 MentorAfrica.
+            <br />
+            A solution by Ascentree Services Ltd.
+            <br />
+            All rights reserved.
+          </p>
         </div>
-      </footer>
+        </footer>
+
     </div>
   )
 }
