@@ -128,8 +128,8 @@ export default function ProfilePage() {
   }
 
   const renderApplicationStatus = () => {
-    const status = user.applicationStatus || (user.appliedMentorId ? "submitted" : "none")
-    const mentorName = user.appliedMentorName || "your mentor"
+    const status = user.applicationStatus || "none"
+    const mentorName = user.appliedMentorName && user.appliedMentorName !== "Mentor pool" ? user.appliedMentorName : null
 
     return (
       <Card>
@@ -142,7 +142,15 @@ export default function ProfilePage() {
               return (
                 <>
                   <p>
-                    You are currently in a mentorship program with <span className="font-semibold">{mentorName}</span>.
+                    You are currently in a mentorship program{mentorName ? (
+                      <>
+                        {" "}
+                        with <span className="font-semibold">{mentorName}</span>
+                      </>
+                    ) : (
+                      ""
+                    )}
+                    .
                   </p>
                   <p>No active applications. Explore more mentors anytime.</p>
                   <Link href="/mentors" className="text-blue-600 font-semibold underline">
@@ -156,13 +164,10 @@ export default function ProfilePage() {
               return (
                 <>
                   <p>
-                    You started an application for <span className="font-semibold">{mentorName}</span> but haven&apos;t
-                    completed it.
+                    You started a mentorship application but haven&apos;t completed it yet.
                   </p>
                   <Button asChild variant="outline" className="mt-1">
-                    <Link href={user.appliedMentorId ? `/apply/${user.appliedMentorId}` : "/mentors"}>
-                      Complete application
-                    </Link>
+                    <Link href="/apply">Complete application</Link>
                   </Button>
                 </>
               )
@@ -171,16 +176,14 @@ export default function ProfilePage() {
             if (status === "submitted") {
               return (
                 <>
-                  <p>
-                    Application submitted to <span className="font-semibold">{mentorName}</span>. Awaiting response.
-                  </p>
+                  <p>Application submitted. We&apos;ll match you with a mentor and reach out soon.</p>
                   {user.applicationNote && (
                     <p className="text-gray-600">
                       <span className="font-semibold">Your note:</span> {user.applicationNote}
                     </p>
                   )}
                   <Button asChild variant="outline" className="mt-1">
-                    <Link href="/mentors">Browse other mentors</Link>
+                    <Link href="/mentors">Browse mentors</Link>
                   </Button>
                 </>
               )
@@ -191,7 +194,7 @@ export default function ProfilePage() {
                 <>
                   <p>Your last application was not accepted.</p>
                   <Button asChild className="mt-1">
-                    <Link href="/mentors">Find another mentor</Link>
+                    <Link href="/apply">Submit a new application</Link>
                   </Button>
                 </>
               )
@@ -201,7 +204,7 @@ export default function ProfilePage() {
               <>
                 <p>No applications at the moment.</p>
                 <Button asChild className="mt-1">
-                  <Link href="/mentors">Browse mentors</Link>
+                  <Link href="/apply">Apply for mentorship</Link>
                 </Button>
               </>
             )

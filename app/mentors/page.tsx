@@ -1,7 +1,9 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Filter } from "lucide-react"
@@ -107,6 +109,13 @@ export default function MentorsPage() {
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Connect with experienced professionals who can guide your career growth
             </p>
+            <div className="mt-6 flex justify-center">
+              <Link href="/apply">
+                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600">
+                  Apply for mentorship
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* Filters */}

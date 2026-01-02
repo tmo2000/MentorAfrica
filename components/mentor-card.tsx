@@ -48,11 +48,8 @@ export function MentorCard({ mentor }: MentorCardProps) {
         <div className="mt-4 flex gap-2">
           <Link href={`/mentors/${mentor.id}`}>
             <Button variant="outline" className="border-2 bg-white cursor-pointer">
-              Read more
+              Learn more
             </Button>
-          </Link>
-          <Link href={`/apply/${mentor.id}`}>
-            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600">Apply</Button>
           </Link>
         </div>
       </CardHeader>
