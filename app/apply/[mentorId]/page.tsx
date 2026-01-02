@@ -1,10 +1,12 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { useRouter, useParams } from "next/navigation"
+import { supabase } from "@/lib/supabaseClient"
+import type { Mentor } from "@/lib/mock-mentors"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,13 +16,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ArrowLeft, Send, User, Calendar, Star, MapPin, Clock } from "lucide-react"
-import { mockMentors } from "@/lib/mock-mentors"
 
 export default function ApplyPage() {
   const { user, updateUser } = useAuth()
   const router = useRouter()
   const params = useParams()
   const mentorId = params.mentorId as string
+
+  const [mentor, setMentor] = useState<Mentor | null>(null)
+  const [mentorLoading, setMentorLoading] = useState(true)
 
   const [applicationData, setApplicationData] = useState({
     motivation: "",
@@ -36,16 +40,72 @@ export default function ApplyPage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [savedDraft, setSavedDraft] = useState(false)
 
-  const mentor = mockMentors.find((m) => m.id === mentorId)
+  // Redirect checks (same logic as you had)
+  useEffect(() => {
+    if (!user) {
+      router.push("/auth/login")
+      return
+    }
+    if (user.role !== "mentee") {
+      router.push("/mentor/dashboard")
+      return
+    }
+  }, [user, router])
 
-  if (!user) {
-    router.push("/auth/login")
-    return null
-  }
+  // Fetch mentor from Supabase (replaces mockMentors.find)
+  useEffect(() => {
+    if (!mentorId) return
 
-  if (user.role !== "mentee") {
-    router.push("/mentor/dashboard")
-    return null
+    ;(async () => {
+      setMentorLoading(true)
+
+      const { data, error } = await supabase
+        .from("mentors")
+        .select("*")
+        .eq("id", mentorId)
+        .single()
+
+      if (error) {
+        console.error("Supabase mentor fetch error:", error)
+        setMentor(null)
+        setMentorLoading(false)
+        return
+      }
+
+      const mapped: Mentor = {
+        id: data.id,
+        name: data.name,
+        bio: data.bio ?? "",
+        location: data.location ?? "",
+        timezone: data.timezone ?? "",
+        expertise: Array.isArray(data.expertise) ? data.expertise : [],
+        maxMentees: data.max_mentees ?? 0,
+        currentMentees: data.current_mentees ?? 0,
+        programDuration: String(data.program_duration_months ?? ""),
+        rating: Number(data.rating ?? 0),
+        totalMentees: data.total_mentees ?? 0,
+        avatar: data.avatar || null,
+        available: Boolean(data.available),
+      }
+
+      setMentor(mapped)
+      setMentorLoading(false)
+    })()
+  }, [mentorId])
+
+  // While redirecting or loading mentor, don’t render the form yet
+  if (!user || user.role !== "mentee") return null
+
+  if (mentorLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <p className="text-gray-600">Loading mentor...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   if (!mentor) {
@@ -67,7 +127,7 @@ export default function ApplyPage() {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Mock submission
+    // Mock submission (keep as-is for now)
     await new Promise((resolve) => setTimeout(resolve, 2000))
 
     console.log("[v0] Application submitted:", {
@@ -78,6 +138,7 @@ export default function ApplyPage() {
 
     setIsSubmitting(false)
     setIsSubmitted(true)
+
     updateUser({
       appliedMentorId: mentorId,
       appliedMentorName: mentor.name,
@@ -106,7 +167,7 @@ export default function ApplyPage() {
             </div>
             <h2 className="text-2xl font-bold text-gray-900">Application Submitted!</h2>
             <p className="text-gray-600">
-              Your application to <strong>{mentor.name}</strong> has been submitted successfully. You'll receive a
+              Your application to <strong>{mentor.name}</strong> has been submitted successfully. You&apos;ll receive a
               notification once they review your application.
             </p>
             <div className="flex gap-3 justify-center">
@@ -241,9 +302,7 @@ export default function ApplyPage() {
                         <Label htmlFor="preferredDuration">Preferred Program Duration</Label>
                         <Select
                           value={applicationData.preferredDuration}
-                          onValueChange={(value) =>
-                            setApplicationData({ ...applicationData, preferredDuration: value })
-                          }
+                          onValueChange={(value) => setApplicationData({ ...applicationData, preferredDuration: value })}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -294,6 +353,7 @@ export default function ApplyPage() {
                       <Button type="button" variant="outline" onClick={handleSaveDraft} className="flex items-center gap-2">
                         Save draft
                       </Button>
+
                       <Button type="submit" disabled={isSubmitting} className="flex items-center gap-2">
                         {isSubmitting ? (
                           <>
@@ -307,9 +367,11 @@ export default function ApplyPage() {
                           </>
                         )}
                       </Button>
+
                       <Button type="button" variant="outline" onClick={() => router.push("/mentors")}>
                         Cancel
                       </Button>
+
                       {savedDraft && <span className="text-xs text-green-700">Draft saved</span>}
                     </div>
                   </form>
