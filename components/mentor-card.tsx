@@ -7,14 +7,6 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Clock, MapPin, Star } from "lucide-react"
 import type { Mentor } from "@/lib/mock-mentors"
-import { supabase } from "@/lib/supabaseClient";
-import { useEffect } from "react"
-
-useEffect(() => {
-  supabase.auth.getSession().then(({ data, error }) => {
-    console.log("Supabase session:", data, error);
-  });
-}, []);
 
 type MentorCardProps = {
   mentor: Mentor
