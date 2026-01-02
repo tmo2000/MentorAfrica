@@ -1,33 +1,97 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { mockMentors } from "@/lib/mock-mentors"
 import { Search, Filter } from "lucide-react"
 import { MentorCard } from "@/components/mentor-card"
 import { SiteHeader } from "@/components/site-header"
+import { supabase } from "@/lib/supabaseClient"
+import type { Mentor } from "@/lib/mock-mentors"
 
 export default function MentorsPage() {
-  const allExpertise = Array.from(new Set(mockMentors.flatMap((mentor) => mentor.expertise)))
+  const [mentors, setMentors] = useState<Mentor[]>([])
+  const [loading, setLoading] = useState(true)
+
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedExpertise, setSelectedExpertise] = useState("All Expertise")
   const [selectedDuration, setSelectedDuration] = useState("Any Duration")
   const [showAvailableOnly, setShowAvailableOnly] = useState(true)
 
-  const filteredMentors = mockMentors.filter((mentor) => {
+  // Fetch mentors from Supabase
+  useEffect(() => {
+    ;(async () => {
+      const { data, error } = await supabase
+        .from("mentors")
+        .select("*")
+
+      if (error) {
+        console.error("Supabase mentors error:", error)
+        setMentors([])
+        setLoading(false)
+        return
+      }
+
+      const mapped: Mentor[] = (data ?? []).map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        bio: m.bio ?? "",
+        location: m.location ?? "",
+        timezone: m.timezone ?? "",
+        expertise: Array.isArray(m.expertise) ? m.expertise : [],
+        maxMentees: m.max_mentees ?? 0,
+        currentMentees: m.current_mentees ?? 0,
+        programDuration: String(m.program_duration_months ?? ""),
+        rating: Number(m.rating ?? 0),
+        totalMentees: m.total_mentees ?? 0,
+        avatar: m.avatar || null,
+        available: Boolean(m.available),
+      }))
+
+      setMentors(mapped)
+      setLoading(false)
+    })()
+  }, [])
+
+  const allExpertise = Array.from(
+    new Set(mentors.flatMap((mentor) => mentor.expertise))
+  )
+
+  const filteredMentors = mentors.filter((mentor) => {
     const matchesSearch =
       mentor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       mentor.bio.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mentor.expertise.some((skill) => skill.toLowerCase().includes(searchTerm.toLowerCase()))
+      mentor.expertise.some((skill) =>
+        skill.toLowerCase().includes(searchTerm.toLowerCase())
+      )
 
-    const matchesExpertise = selectedExpertise === "All Expertise" || mentor.expertise.includes(selectedExpertise)
-    const matchesDuration = selectedDuration === "Any Duration" || mentor.programDuration === selectedDuration
-    const matchesAvailability = !showAvailableOnly || mentor.available
+    const matchesExpertise =
+      selectedExpertise === "All Expertise" ||
+      mentor.expertise.includes(selectedExpertise)
 
-    return matchesSearch && matchesExpertise && matchesDuration && matchesAvailability
+    const matchesDuration =
+      selectedDuration === "Any Duration" ||
+      mentor.programDuration === selectedDuration
+
+    const matchesAvailability =
+      !showAvailableOnly || mentor.available
+
+    return (
+      matchesSearch &&
+      matchesExpertise &&
+      matchesDuration &&
+      matchesAvailability
+    )
   })
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Loading mentors...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -37,7 +101,9 @@ export default function MentorsPage() {
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Find Your Mentor</h1>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+              Find Your Mentor
+            </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Connect with experienced professionals who can guide your career growth
             </p>
@@ -114,8 +180,12 @@ export default function MentorsPage() {
 
           {filteredMentors.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">No mentors found matching your criteria.</p>
-              <p className="text-gray-400 mt-2">Try adjusting your filters or search terms.</p>
+              <p className="text-gray-500 text-lg">
+                No mentors found matching your criteria.
+              </p>
+              <p className="text-gray-400 mt-2">
+                Try adjusting your filters or search terms.
+              </p>
             </div>
           )}
         </div>
