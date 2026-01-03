@@ -2,53 +2,61 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+
 import { Users, ArrowLeft, UserCheck, GraduationCap } from "lucide-react"
-import Link from "next/link"
 import { useAuth, type UserRole } from "@/components/auth-provider"
 
 export default function RegisterPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [name, setName] = useState("")
-  const [role, setRole] = useState<UserRole>("mentee")
-  const [error, setError] = useState("")
-  const { register, isLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const preselectedRole = searchParams.get("role") as UserRole
+
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [fullName, setFullName] = useState("")
+  const [role, setRole] = useState<UserRole>("mentee")
+  const [error, setError] = useState("")
+
+  const { signUp, isLoading } = useAuth()
+
+  const preselectedRole = searchParams.get("role") as UserRole | null
   const lockRole = searchParams.get("roleLocked") === "true" || preselectedRole === "admin"
 
-  // ensure role respects preselected/locked
-  useState(() => {
-    if (preselectedRole) {
+  // set role once if passed in query string
+  useEffect(() => {
+    if (preselectedRole && (preselectedRole === "mentor" || preselectedRole === "mentee" || preselectedRole === "admin")) {
       setRole(preselectedRole)
     }
-  })
-
-  useState(() => {
-    if (preselectedRole && ["mentor", "mentee"].includes(preselectedRole)) {
-      setRole(preselectedRole)
-    }
-  })
+  }, [preselectedRole])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
-    const success = await register(email, password, name, role)
-    if (!success) {
-      setError("Registration failed. Please try again.")
+    const res = await signUp({
+      email,
+      password,
+      fullName,
+      role,
+    })
+
+    if (!res.ok) {
+      setError(res.error ?? "Registration failed. Please try again.")
       return
     }
-    router.push("/onboarding")
+
+    // If email confirmations are ON, they may need to confirm first.
+    // Sending to login is the least confusing.
+    router.push("/auth/login")
   }
 
   return (
@@ -63,7 +71,7 @@ export default function RegisterPage() {
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
               <Users className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">MentorConnect</span>
+            <span className="text-xl font-bold text-gray-900">MentorAfrica</span>
           </div>
         </div>
 
@@ -72,15 +80,16 @@ export default function RegisterPage() {
             <CardTitle className="text-2xl">Create your account</CardTitle>
             <CardDescription>Join thousands of professionals in meaningful mentorship relationships</CardDescription>
           </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="fullName">Full Name</Label>
                 <Input
-                  id="name"
+                  id="fullName"
                   type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
                   placeholder="Enter your full name"
                   required
                 />
@@ -124,6 +133,7 @@ export default function RegisterPage() {
                         <p className="text-sm text-gray-600">I want to learn and grow with guidance</p>
                       </div>
                     </div>
+
                     <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
                       <RadioGroupItem value="mentor" id="mentor" />
                       <UserCheck className="w-5 h-5 text-indigo-600" />

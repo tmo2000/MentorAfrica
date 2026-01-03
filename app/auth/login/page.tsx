@@ -4,23 +4,29 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+
 import { Users, ArrowLeft } from "lucide-react"
-import Link from "next/link"
 import { useAuth, type UserRole } from "@/components/auth-provider"
 
 export default function LoginPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
-  const { login, isLoading } = useAuth()
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const preselectedRole = searchParams.get("role") as UserRole
+
+  // from updated AuthProvider (Supabase-based)
+  const { signIn, user, isLoading, refreshProfile } = useAuth()
+
+  const preselectedRole = (searchParams.get("role") as UserRole | null) ?? undefined
   const lockRole = searchParams.get("roleLocked") === "true" || preselectedRole === "admin"
   const [selectedRole, setSelectedRole] = useState<UserRole | undefined>(preselectedRole)
 
@@ -28,12 +34,24 @@ export default function LoginPage() {
     e.preventDefault()
     setError("")
 
-    const success = await login(email, password, selectedRole)
-    if (success) {
-      router.push("/")
-    } else {
-      setError("Invalid credentials. Try mentor@example.com, mentee@example.com, tobi@example.com, or admin@example.com")
+    const res = await signIn({ email, password })
+
+    if (!res.ok) {
+      setError(res.error ?? "Invalid credentials.")
+      return
     }
+
+    // ensure profile loaded (role comes from DB)
+    await refreshProfile()
+
+    // user might update slightly after refreshProfile; safest is to route after a tick
+    // but this works in most cases:
+    const role = user?.role
+
+    if (role === "mentor") router.push("/mentor/dashboard")
+    else if (role === "mentee") router.push("/mentee/dashboard")
+    else if (role === "admin") router.push("/admin")
+    else router.push("/") // fallback
   }
 
   return (
@@ -48,7 +66,7 @@ export default function LoginPage() {
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
               <Users className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">MentorConnect</span>
+            <span className="text-xl font-bold text-gray-900">MentorAfrica</span>
           </div>
         </div>
 
@@ -59,6 +77,7 @@ export default function LoginPage() {
               {selectedRole ? `Sign in to your ${selectedRole} account` : "Sign in to your account"}
             </CardDescription>
           </CardHeader>
+
           <CardContent>
             {!lockRole && (
               <div className="grid grid-cols-2 gap-2 mb-4">
@@ -88,6 +107,7 @@ export default function LoginPage() {
                   required
                 />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input
@@ -118,20 +138,16 @@ export default function LoginPage() {
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Don't have an account?{" "}
-                <Link href={`/auth/register${selectedRole ? `?role=${selectedRole}` : ""}`} className="text-blue-600 hover:text-blue-700 font-medium">
+                <Link
+                  href={`/auth/register${selectedRole ? `?role=${selectedRole}` : ""}`}
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
                   Sign up
                 </Link>
               </p>
             </div>
 
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-gray-600 mb-2">Demo accounts:</p>
-              <div className="text-xs space-y-1">
-                <div>Mentor: mentor@example.com</div>
-                <div>Mentee: mentee@example.com</div>
-                <div>Admin: admin@example.com</div>
-              </div>
-            </div>
+            {/* Remove demo block now that Supabase auth is real */}
           </CardContent>
         </Card>
       </div>

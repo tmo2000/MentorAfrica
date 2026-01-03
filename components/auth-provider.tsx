@@ -1,5 +1,147 @@
 "use client"
 
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react"
+import { supabase } from "@/lib/supabaseClient"
+
+export type UserRole = "mentor" | "mentee" | "admin"
+
+export type AppUser = {
+  id: string
+  email: string
+  name: string
+  role: UserRole
+}
+
+type AuthContextType = {
+  user: AppUser | null
+  isLoading: boolean
+  signUp: (args: { email: string; password: string; fullName: string; role: UserRole }) => Promise<{ ok: boolean; error?: string }>
+  signIn: (args: { email: string; password: string }) => Promise<{ ok: boolean; error?: string }>
+  signOut: () => Promise<void>
+  refreshProfile: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AppUser | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  async function loadProfile() {
+    const { data: sessionData } = await supabase.auth.getSession()
+    const session = sessionData.session
+
+    if (!session?.user) {
+      setUser(null)
+      setIsLoading(false)
+      return
+    }
+
+    const authUser = session.user
+
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("id,email,full_name,role")
+      .eq("id", authUser.id)
+      .single()
+
+    if (error || !profile) {
+      console.error("Profile fetch error:", error)
+      // still set something minimal
+      setUser({
+        id: authUser.id,
+        email: authUser.email ?? "",
+        name: authUser.user_metadata?.full_name ?? "",
+        role: (authUser.user_metadata?.role as UserRole) ?? "mentee",
+      })
+      setIsLoading(false)
+      return
+    }
+
+    setUser({
+      id: profile.id,
+      email: profile.email ?? authUser.email ?? "",
+      name: profile.full_name ?? "",
+      role: profile.role as UserRole,
+    })
+    setIsLoading(false)
+  }
+
+  useEffect(() => {
+    loadProfile()
+
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      // whenever login/logout happens, refresh
+      loadProfile()
+    })
+
+    return () => {
+      sub.subscription.unsubscribe()
+    }
+  }, [])
+
+  async function signUp(args: { email: string; password: string; fullName: string; role: UserRole }) {
+    const { error } = await supabase.auth.signUp({
+      email: args.email,
+      password: args.password,
+      options: {
+        data: {
+          full_name: args.fullName,
+          role: args.role,
+        },
+      },
+    })
+
+    if (error) return { ok: false, error: error.message }
+    return { ok: true }
+  }
+
+  async function signIn(args: { email: string; password: string }) {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: args.email,
+      password: args.password,
+    })
+
+    if (error) return { ok: false, error: error.message }
+    return { ok: true }
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut()
+    setUser(null)
+  }
+
+  async function refreshProfile() {
+    setIsLoading(true)
+    await loadProfile()
+  }
+
+  const value = useMemo(
+    () => ({ user, isLoading, signUp, signIn, signOut, refreshProfile }),
+    [user, isLoading]
+  )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider")
+  return ctx
+}
+
+
+
+
+/**"use client"
+
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 
 export type UserRole = "mentor" | "mentee" | "admin"
@@ -175,4 +317,4 @@ export function useAuth() {
     throw new Error("useAuth must be used within an AuthProvider")
   }
   return context
-}
+}  **/

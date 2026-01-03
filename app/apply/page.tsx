@@ -2,18 +2,22 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+
 import { SiteHeader } from "@/components/site-header"
 import { useAuth } from "@/components/auth-provider"
+import { supabase } from "@/lib/supabaseClient"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 import { Send, User, Target, Calendar } from "lucide-react"
 
 export default function CentralApplyPage() {
-  const { user, updateUser } = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
 
   const [applicationData, setApplicationData] = useState({
@@ -28,7 +32,9 @@ export default function CentralApplyPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
+  // Guards
   if (!user) {
     router.push("/auth/login")
     return null
@@ -42,25 +48,37 @@ export default function CentralApplyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setError(null)
 
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    const { error } = await supabase.from("applications").insert([
+      {
+        mentee_id: user.id,
+        mentor_id: null, // central pool
+        motivation: applicationData.motivation,
+        goals: applicationData.goals,
+        experience: applicationData.experience || null,
+        focus_areas: applicationData.focusAreas || null,
+        preferred_duration_months: Number(applicationData.preferredDuration),
+        availability: applicationData.availability || null,
+        questions: applicationData.questions || null,
+        status: "submitted",
+      },
+    ])
 
-    console.log("[v0] Centralized application submitted:", {
-      menteeId: user.id,
-      ...applicationData,
-    })
-
-    updateUser({
-      appliedMentorId: null,
-      appliedMentorName: "Mentor pool",
-      applicationStatus: "submitted",
-      applicationNote: applicationData.motivation,
-    })
+    if (error) {
+      console.error("Application insert error:", error)
+      setError(error.message)
+      setIsSubmitting(false)
+      return
+    }
 
     setIsSubmitting(false)
     setIsSubmitted(true)
   }
 
+  /* =======================
+     SUCCESS STATE
+  ======================= */
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -74,8 +92,7 @@ export default function CentralApplyPage() {
                 </div>
                 <h1 className="text-2xl font-bold text-gray-900">Application submitted</h1>
                 <p className="text-gray-600">
-                  Thanks for applying! We&apos;ll review your details and match you with an available mentor. Expect an
-                  update soon.
+                  We’ve received your application and will match you with an available mentor.
                 </p>
                 <div className="flex gap-3 justify-center">
                   <Button onClick={() => router.push("/mentee/dashboard")}>Go to dashboard</Button>
@@ -91,16 +108,19 @@ export default function CentralApplyPage() {
     )
   }
 
+  /* =======================
+     FORM
+  ======================= */
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       <SiteHeader />
+
       <div className="container mx-auto px-4 py-10">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="text-center space-y-3">
             <h1 className="text-4xl font-bold text-gray-900">Apply for mentorship</h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Submit one application and we&apos;ll pair you with the best available mentor based on your goals and
-              availability.
+              Submit one application and we’ll match you with the best available mentor.
             </p>
           </div>
 
@@ -110,30 +130,34 @@ export default function CentralApplyPage() {
                 <User className="h-5 w-5" />
                 Tell us about you
               </CardTitle>
-              <CardDescription>Share your goals and availability so we can make the right match.</CardDescription>
+              <CardDescription>
+                Your goals and availability help us find the right mentor.
+              </CardDescription>
             </CardHeader>
+
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="motivation">Why do you want a mentor? *</Label>
+                    <Label>Why do you want a mentor? *</Label>
                     <Textarea
-                      id="motivation"
                       required
-                      placeholder="Explain what you hope to gain from mentorship..."
                       value={applicationData.motivation}
-                      onChange={(e) => setApplicationData({ ...applicationData, motivation: e.target.value })}
+                      onChange={(e) =>
+                        setApplicationData({ ...applicationData, motivation: e.target.value })
+                      }
                       className="min-h-[110px]"
                     />
                   </div>
+
                   <div>
-                    <Label htmlFor="goals">Top goals *</Label>
+                    <Label>Top goals *</Label>
                     <Textarea
-                      id="goals"
                       required
-                      placeholder="List the outcomes you want to achieve..."
                       value={applicationData.goals}
-                      onChange={(e) => setApplicationData({ ...applicationData, goals: e.target.value })}
+                      onChange={(e) =>
+                        setApplicationData({ ...applicationData, goals: e.target.value })
+                      }
                       className="min-h-[110px]"
                     />
                   </div>
@@ -141,34 +165,36 @@ export default function CentralApplyPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="experience">Your experience</Label>
+                    <Label>Your experience</Label>
                     <Textarea
-                      id="experience"
-                      placeholder="Role, years of experience, recent projects..."
                       value={applicationData.experience}
-                      onChange={(e) => setApplicationData({ ...applicationData, experience: e.target.value })}
-                      className="min-h-[100px]"
+                      onChange={(e) =>
+                        setApplicationData({ ...applicationData, experience: e.target.value })
+                      }
                     />
                   </div>
+
                   <div>
-                    <Label htmlFor="focusAreas">Focus areas</Label>
+                    <Label>Focus areas</Label>
                     <Input
-                      id="focusAreas"
-                      placeholder="e.g., System design, PM transition, Leadership"
                       value={applicationData.focusAreas}
-                      onChange={(e) => setApplicationData({ ...applicationData, focusAreas: e.target.value })}
+                      onChange={(e) =>
+                        setApplicationData({ ...applicationData, focusAreas: e.target.value })
+                      }
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="preferredDuration">Preferred program duration</Label>
+                    <Label>Preferred duration</Label>
                     <Select
                       value={applicationData.preferredDuration}
-                      onValueChange={(value) => setApplicationData({ ...applicationData, preferredDuration: value })}
+                      onValueChange={(value) =>
+                        setApplicationData({ ...applicationData, preferredDuration: value })
+                      }
                     >
-                      <SelectTrigger id="preferredDuration">
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -178,67 +204,43 @@ export default function CentralApplyPage() {
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div>
-                    <Label htmlFor="availability">Availability</Label>
+                    <Label>Availability</Label>
                     <Input
-                      id="availability"
-                      placeholder="e.g., Weekday evenings, Weekend mornings"
                       value={applicationData.availability}
-                      onChange={(e) => setApplicationData({ ...applicationData, availability: e.target.value })}
+                      onChange={(e) =>
+                        setApplicationData({ ...applicationData, availability: e.target.value })
+                      }
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="questions">Any questions or preferences?</Label>
+                  <Label>Questions or preferences</Label>
                   <Textarea
-                    id="questions"
-                    placeholder="Share scheduling constraints, mentor preferences, or questions..."
                     value={applicationData.questions}
-                    onChange={(e) => setApplicationData({ ...applicationData, questions: e.target.value })}
-                    className="min-h-[90px]"
+                    onChange={(e) =>
+                      setApplicationData({ ...applicationData, questions: e.target.value })
+                    }
                   />
                 </div>
 
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <Button type="submit" disabled={isSubmitting} className="flex items-center gap-2">
-                    {isSubmitting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4" />
-                        Submit application
-                      </>
-                    )}
+                {error && <p className="text-red-600 text-sm">{error}</p>}
+
+                <div className="flex gap-3 pt-2">
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Submitting…" : "Submit application"}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.push("/mentors")}
-                    className="flex items-center gap-2"
-                  >
-                    <Target className="h-4 w-4" />
+
+                  <Button variant="outline" onClick={() => router.push("/mentors")}>
+                    <Target className="h-4 w-4 mr-2" />
                     View mentors
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      updateUser({
-                        appliedMentorId: null,
-                        appliedMentorName: "Mentor pool",
-                        applicationStatus: "draft",
-                        applicationNote:
-                          applicationData.motivation || "Draft application in progress",
-                      })
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <Calendar className="h-4 w-4" />
-                    Save and continue later
+
+                  <Button variant="outline" onClick={() => router.push("/mentee/dashboard")}>
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Save for later
                   </Button>
                 </div>
               </form>
