@@ -1,23 +1,38 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import Link from "next/link"
 import { supabase } from "@/lib/supabaseClient"
 import type { Mentor } from "@/lib/mock-mentors"
+import { useAuth } from "@/components/auth-provider"
 import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MapPin, Clock, Star, ArrowLeft, CheckCircle } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { eoiService, mentorshipService } from "@/lib/matchingService"
+import { MapPin, Clock, Star, ArrowLeft, CheckCircle, Info, AlertTriangle } from "lucide-react"
 
 export default function MentorDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const mentorId = params.id as string
+  const { user } = useAuth()
 
   const [mentor, setMentor] = useState<Mentor | null>(null)
   const [loading, setLoading] = useState(true)
+  const [myEOIs, setMyEOIs] = useState(() => (user ? eoiService.listMyEOIs(user.id) : []))
+  const [goal, setGoal] = useState("")
+  const [note, setNote] = useState("")
+  const [rank, setRank] = useState<"1" | "2" | "3">("1")
+  const [submitting, setSubmitting] = useState(false)
+  const [feedback, setFeedback] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!mentorId) return
@@ -53,6 +68,24 @@ export default function MentorDetailsPage() {
       setLoading(false)
     })()
   }, [mentorId])
+
+  useEffect(() => {
+    if (user) {
+      setMyEOIs(eoiService.listMyEOIs(user.id))
+    }
+  }, [user])
+
+  const activeMentorship = useMemo(() => (user ? mentorshipService.hasActiveMentorship(user.id) : false), [user])
+
+  const activeEOIsCount = useMemo(
+    () => myEOIs.filter((e) => e.status === "EOI" || e.status === "INVITED").length,
+    [myEOIs]
+  )
+
+  const alreadyInterested = useMemo(
+    () => myEOIs.some((e) => e.mentorId === mentorId && (e.status === "EOI" || e.status === "INVITED")),
+    [myEOIs, mentorId]
+  )
 
   if (loading) {
     return (
@@ -136,9 +169,6 @@ export default function MentorDetailsPage() {
               </div>
 
               <div className="flex gap-3">
-                <Button onClick={() => router.push("/apply")} className="bg-gradient-to-r from-blue-600 to-indigo-600">
-                  Apply for mentorship
-                </Button>
                 <Button variant="outline" onClick={() => router.push("/mentors")}>
                   Browse mentors
                 </Button>
@@ -188,6 +218,146 @@ export default function MentorDetailsPage() {
                   </CardContent>
                 </Card>
               </div>
+
+              <Card className="border border-blue-100">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    Express interest
+                  </CardTitle>
+                  <CardDescription>
+                    Share a short goal and rank this mentor. You can hold up to three active interests at a time.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!mentor.available || mentor.currentMentees >= mentor.maxMentees ? (
+                    <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-md p-3">
+                      <AlertTriangle className="h-4 w-4 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Not currently accepting</p>
+                        <p>This mentor is at capacity right now.</p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {activeMentorship ? (
+                    <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-md p-3">
+                      <AlertTriangle className="h-4 w-4 mt-0.5" />
+                      <div>
+                        <p className="font-medium">You can only have one active mentorship at a time.</p>
+                        <p>Wrap up your current mentorship before expressing new interest.</p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {feedback ? <p className="text-sm text-green-700">{feedback}</p> : null}
+                  {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="goal">Your goal (max 280)</Label>
+                    <Textarea
+                      id="goal"
+                      maxLength={280}
+                      value={goal}
+                      onChange={(e) => setGoal(e.target.value)}
+                      placeholder="Share a short goal for this mentorship..."
+                      className="min-h-[100px]"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="note">Optional note (max 280)</Label>
+                    <Textarea
+                      id="note"
+                      maxLength={280}
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="Anything else the mentor should know..."
+                      className="min-h-[80px]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="rank">Rank</Label>
+                      <Select value={rank} onValueChange={(val) => setRank(val as "1" | "2" | "3")}>
+                        <SelectTrigger id="rank">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 (top choice)</SelectItem>
+                          <SelectItem value="2">2</SelectItem>
+                          <SelectItem value="3">3</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Active interests</Label>
+                      <Input readOnly value={`${activeEOIsCount} of 3 used`} />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={() => {
+                        if (!user || user.role !== "mentee") {
+                          router.push("/auth/login?role=mentee")
+                          return
+                        }
+                        setFeedback(null)
+                        setError(null)
+                        if (mentor.currentMentees >= mentor.maxMentees || !mentor.available) {
+                          setError("This mentor is not currently accepting.")
+                          return
+                        }
+                        if (activeMentorship) {
+                          setError("You can only have one active mentorship at a time.")
+                          return
+                        }
+                        if (!goal.trim()) {
+                          setError("Please add a brief goal.")
+                          return
+                        }
+                        setSubmitting(true)
+                        const result = eoiService.createEOI({
+                          mentorId,
+                          menteeId: user.id,
+                          menteeGoal: goal.trim(),
+                          note: note.trim(),
+                          rankedPreference: rank === "1" ? 1 : rank === "2" ? 2 : 3,
+                        })
+                        if (!result.ok) {
+                          setError(result.error || "Unable to submit interest.")
+                        } else {
+                          setGoal("")
+                          setNote("")
+                          setFeedback("Interest sent. The mentor may invite you to apply.")
+                          setMyEOIs(eoiService.listMyEOIs(user.id))
+                        }
+                        setSubmitting(false)
+                      }}
+                      disabled={
+                        submitting ||
+                        !goal.trim() ||
+                        alreadyInterested ||
+                        activeEOIsCount >= 3 ||
+                        activeMentorship ||
+                        !mentor.available ||
+                        mentor.currentMentees >= mentor.maxMentees
+                      }
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600"
+                    >
+                      {alreadyInterested ? "Interest sent" : submitting ? "Submitting..." : "Express interest"}
+                    </Button>
+                    <Button variant="outline" asChild>
+                      <Link href="/mentee/dashboard">View my interests</Link>
+                    </Button>
+                  </div>
+                  {alreadyInterested ? (
+                    <p className="text-xs text-gray-600">You already expressed interest in this mentor.</p>
+                  ) : null}
+                </CardContent>
+              </Card>
             </CardContent>
           </Card>
         </div>

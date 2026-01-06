@@ -110,10 +110,8 @@ export default function MentorsPage() {
               Connect with experienced professionals who can guide your career growth
             </p>
             <div className="mt-6 flex justify-center">
-              <Link href="/apply">
-                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600">
-                  Apply for mentorship
-                </Button>
+              <Link href="/mentee/dashboard">
+                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600">View my interests</Button>
               </Link>
             </div>
           </div>

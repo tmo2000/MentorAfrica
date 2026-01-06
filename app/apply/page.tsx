@@ -1,24 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-
 import { SiteHeader } from "@/components/site-header"
 import { useAuth } from "@/components/auth-provider"
 import { supabase } from "@/lib/supabaseClient"
-
+import { inviteService, applicationService, mentorshipService } from "@/lib/matchingService"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-import { Send, User, Target, Calendar } from "lucide-react"
+import { Send, User, Target, Calendar, AlertTriangle } from "lucide-react"
 
 export default function CentralApplyPage() {
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
   const router = useRouter()
+
+  const [mentorName, setMentorName] = useState<string>("Selected mentor")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const [applicationData, setApplicationData] = useState({
     motivation: "",
@@ -30,9 +33,19 @@ export default function CentralApplyPage() {
     questions: "",
   })
 
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const invites = useMemo(() => (user ? inviteService.listMyInvites(user.id) : []), [user])
+  const acceptedInvite = useMemo(() => invites.find((i) => i.status === "ACCEPTED"), [invites])
+  const activeMentorship = useMemo(() => (user ? mentorshipService.hasActiveMentorship(user.id) : false), [user])
+
+  useEffect(() => {
+    const fetchMentor = async () => {
+      if (acceptedInvite?.mentorId) {
+        const { data } = await supabase.from("mentors").select("name").eq("id", acceptedInvite.mentorId).maybeSingle()
+        if (data?.name) setMentorName(data.name)
+      }
+    }
+    fetchMentor()
+  }, [acceptedInvite])
 
   // Guards
   if (!user) {
@@ -45,32 +58,80 @@ export default function CentralApplyPage() {
     return null
   }
 
+  if (activeMentorship) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <SiteHeader />
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-2xl mx-auto">
+            <Card className="shadow-lg">
+              <CardContent className="pt-8 space-y-3 text-center">
+                <div className="flex items-center justify-center gap-2 text-amber-700">
+                  <AlertTriangle className="h-5 w-5" />
+                  <span className="font-semibold">You already have an active mentorship.</span>
+                </div>
+                <p className="text-gray-600">Finish your current mentorship before submitting a new application.</p>
+                <Button variant="outline" onClick={() => router.push("/mentee/dashboard")} className="mt-2">
+                  Go to dashboard
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!acceptedInvite) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <SiteHeader />
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-2xl mx-auto">
+            <Card className="shadow-lg">
+              <CardContent className="pt-8 space-y-3 text-center">
+                <div className="flex items-center justify-center gap-2 text-amber-700">
+                  <AlertTriangle className="h-5 w-5" />
+                  <span className="font-semibold">You need an accepted invite to apply.</span>
+                </div>
+                <p className="text-gray-600">
+                  Accept an invite from your preferred mentor, then come back to submit your full application.
+                </p>
+                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600" onClick={() => router.push("/mentee/dashboard")}>
+                  View my invites
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     setError(null)
 
-    const { error } = await supabase.from("applications").insert([
-      {
-        mentee_id: user.id,
-        mentor_id: null, // central pool
-        motivation: applicationData.motivation,
-        goals: applicationData.goals,
-        experience: applicationData.experience || null,
-        focus_areas: applicationData.focusAreas || null,
-        preferred_duration_months: Number(applicationData.preferredDuration),
-        availability: applicationData.availability || null,
-        questions: applicationData.questions || null,
-        status: "submitted",
-      },
-    ])
+    const result = applicationService.submitApplication({
+      inviteId: acceptedInvite.id,
+      mentorId: acceptedInvite.mentorId,
+      menteeId: user.id,
+      payload: applicationData,
+    })
 
-    if (error) {
-      console.error("Application insert error:", error)
-      setError(error.message)
+    if (!result.ok) {
+      setError(result.error || "Unable to submit application.")
       setIsSubmitting(false)
       return
     }
+
+    updateUser({
+      appliedMentorId: acceptedInvite.mentorId,
+      appliedMentorName: mentorName,
+      applicationStatus: "submitted",
+      applicationNote: applicationData.motivation,
+    })
 
     setIsSubmitting(false)
     setIsSubmitted(true)
@@ -92,7 +153,7 @@ export default function CentralApplyPage() {
                 </div>
                 <h1 className="text-2xl font-bold text-gray-900">Application submitted</h1>
                 <p className="text-gray-600">
-                  We’ve received your application and will match you with an available mentor.
+                  We&apos;ve received your application for {mentorName}. Your mentor will review it soon.
                 </p>
                 <div className="flex gap-3 justify-center">
                   <Button onClick={() => router.push("/mentee/dashboard")}>Go to dashboard</Button>
@@ -118,9 +179,9 @@ export default function CentralApplyPage() {
       <div className="container mx-auto px-4 py-10">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="text-center space-y-3">
-            <h1 className="text-4xl font-bold text-gray-900">Apply for mentorship</h1>
+            <h1 className="text-4xl font-bold text-gray-900">Application for {mentorName}</h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Submit one application and we’ll match you with the best available mentor.
+              You accepted an invite from {mentorName}. Complete the full application to proceed.
             </p>
           </div>
 
@@ -130,12 +191,11 @@ export default function CentralApplyPage() {
                 <User className="h-5 w-5" />
                 Tell us about you
               </CardTitle>
-              <CardDescription>
-                Your goals and availability help us find the right mentor.
-              </CardDescription>
+              <CardDescription>Your goals and availability help the mentor review your fit.</CardDescription>
             </CardHeader>
 
             <CardContent>
+              {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -143,9 +203,7 @@ export default function CentralApplyPage() {
                     <Textarea
                       required
                       value={applicationData.motivation}
-                      onChange={(e) =>
-                        setApplicationData({ ...applicationData, motivation: e.target.value })
-                      }
+                      onChange={(e) => setApplicationData({ ...applicationData, motivation: e.target.value })}
                       className="min-h-[110px]"
                     />
                   </div>
@@ -155,9 +213,7 @@ export default function CentralApplyPage() {
                     <Textarea
                       required
                       value={applicationData.goals}
-                      onChange={(e) =>
-                        setApplicationData({ ...applicationData, goals: e.target.value })
-                      }
+                      onChange={(e) => setApplicationData({ ...applicationData, goals: e.target.value })}
                       className="min-h-[110px]"
                     />
                   </div>
@@ -168,9 +224,7 @@ export default function CentralApplyPage() {
                     <Label>Your experience</Label>
                     <Textarea
                       value={applicationData.experience}
-                      onChange={(e) =>
-                        setApplicationData({ ...applicationData, experience: e.target.value })
-                      }
+                      onChange={(e) => setApplicationData({ ...applicationData, experience: e.target.value })}
                     />
                   </div>
 
@@ -178,9 +232,7 @@ export default function CentralApplyPage() {
                     <Label>Focus areas</Label>
                     <Input
                       value={applicationData.focusAreas}
-                      onChange={(e) =>
-                        setApplicationData({ ...applicationData, focusAreas: e.target.value })
-                      }
+                      onChange={(e) => setApplicationData({ ...applicationData, focusAreas: e.target.value })}
                     />
                   </div>
                 </div>
@@ -190,9 +242,7 @@ export default function CentralApplyPage() {
                     <Label>Preferred duration</Label>
                     <Select
                       value={applicationData.preferredDuration}
-                      onValueChange={(value) =>
-                        setApplicationData({ ...applicationData, preferredDuration: value })
-                      }
+                      onValueChange={(value) => setApplicationData({ ...applicationData, preferredDuration: value })}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -209,9 +259,7 @@ export default function CentralApplyPage() {
                     <Label>Availability</Label>
                     <Input
                       value={applicationData.availability}
-                      onChange={(e) =>
-                        setApplicationData({ ...applicationData, availability: e.target.value })
-                      }
+                      onChange={(e) => setApplicationData({ ...applicationData, availability: e.target.value })}
                     />
                   </div>
                 </div>
@@ -220,17 +268,13 @@ export default function CentralApplyPage() {
                   <Label>Questions or preferences</Label>
                   <Textarea
                     value={applicationData.questions}
-                    onChange={(e) =>
-                      setApplicationData({ ...applicationData, questions: e.target.value })
-                    }
+                    onChange={(e) => setApplicationData({ ...applicationData, questions: e.target.value })}
                   />
                 </div>
 
-                {error && <p className="text-red-600 text-sm">{error}</p>}
-
                 <div className="flex gap-3 pt-2">
                   <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? "Submitting…" : "Submit application"}
+                    {isSubmitting ? "Submitting..." : "Submit application"}
                   </Button>
 
                   <Button variant="outline" onClick={() => router.push("/mentors")}>

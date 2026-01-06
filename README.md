@@ -48,3 +48,9 @@ bash
 Copy code
 npm run build
 npm run start
+
+## Developer note: matching flow
+
+- The apply flow is now two-stage: mentees express interest (EOI) on a mentor profile (ranked, max 3); mentors invite them to apply (quota 8/month); mentees must accept exactly one invite to unlock the full application form.
+- Frontend-only data for EOIs, invites, applications, and mentorships is stored via `lib/matchingService.ts` (localStorage-backed). Swap these helpers with real API calls when backend endpoints are ready.
+- Key screens: `app/mentors/[id]/page.tsx` (Express Interest), `app/mentee/dashboard/page.tsx` (interests/invites/applications), `app/mentor/dashboard/page.tsx` (EOIs + invites), `app/apply/page.tsx` (gated full application), and `app/applications/page.tsx` (application list).

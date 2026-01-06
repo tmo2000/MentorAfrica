@@ -1,25 +1,17 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { useAuth } from "@/components/auth-provider"
+import { eoiService, inviteService, type ExpressionOfInterest, type Invite } from "@/lib/matchingService"
 import { SiteHeader } from "@/components/site-header"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import {
-  Users,
-  Calendar,
-  Clock,
-  TrendingUp,
-  MessageSquare,
-  Star,
-  Award,
-  BookOpen,
-  CheckCircle,
-} from "lucide-react"
+import { Users, Calendar, Clock, TrendingUp, MessageSquare, Star, Award, BookOpen, CheckCircle, Inbox } from "lucide-react"
 
 // Mock dashboard data
 const mockDashboardData = {
@@ -93,6 +85,9 @@ const mockDashboardData = {
 export default function MentorDashboard() {
   const { user } = useAuth()
   const router = useRouter()
+  const [eois, setEois] = useState<ExpressionOfInterest[]>([])
+  const [invites, setInvites] = useState<Invite[]>([])
+  const inviteQuota = 8
 
   if (!user) {
     router.push("/auth/login")
@@ -102,6 +97,33 @@ export default function MentorDashboard() {
   if (user.role !== "mentor") {
     router.push("/")
     return null
+  }
+
+  useEffect(() => {
+    if (user?.role === "mentor") {
+      setEois(eoiService.listEOIsForMentor(user.id).slice(0, 25))
+      setInvites(inviteService.listInvitesForMentor(user.id))
+    }
+  }, [user])
+
+  const remainingInvites = Math.max(0, inviteQuota - invites.length)
+  const orderedEOIs = useMemo(
+    () => [...eois].sort((a, b) => a.rankedPreference - b.rankedPreference || b.createdAt.localeCompare(a.createdAt)),
+    [eois]
+  )
+
+  const handleInvite = (eoi: ExpressionOfInterest) => {
+    if (!user) return
+    const result = inviteService.sendInvite({
+      eoiId: eoi.id,
+      mentorId: user.id,
+      menteeId: eoi.menteeId,
+      quotaRemaining: remainingInvites,
+    })
+    if (result.ok) {
+      setInvites(inviteService.listInvitesForMentor(user.id))
+      setEois(eoiService.listEOIsForMentor(user.id).slice(0, 25))
+    }
   }
 
   const { stats, currentMentees, upcomingSessions, recentActivity } = mockDashboardData
@@ -116,6 +138,77 @@ export default function MentorDashboard() {
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome back, {user.name}</h1>
             <p className="text-xl text-gray-600">Here's what's happening with your mentees</p>
+          </div>
+
+          {/* Interested mentees & invites */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Interested mentees (EOIs)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-sm text-gray-600">Showing up to 25 most recent EOIs.</div>
+                {orderedEOIs.length === 0 ? (
+                  <p className="text-sm text-gray-600">No expressions of interest yet.</p>
+                ) : (
+                  orderedEOIs.map((eoi) => {
+                    const canInvite = (eoi.status === "EOI" || eoi.status === "INVITED") && remainingInvites > 0
+                    return (
+                      <div key={eoi.id} className="p-3 border rounded-lg bg-white flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="secondary">Rank {eoi.rankedPreference}</Badge>
+                            <Badge>{eoi.status}</Badge>
+                          </div>
+                          <Button size="sm" disabled={!canInvite} onClick={() => handleInvite(eoi)}>
+                            {remainingInvites <= 0 ? "Quota reached" : "Invite to apply"}
+                          </Button>
+                        </div>
+                        <p className="text-sm text-gray-800 line-clamp-2">{eoi.menteeGoal}</p>
+                        {eoi.note ? <p className="text-xs text-gray-600">Note: {eoi.note}</p> : null}
+                        <p className="text-xs text-gray-500">
+                          Received {new Date(eoi.createdAt).toLocaleDateString()} · Mentee {eoi.menteeId}
+                        </p>
+                      </div>
+                    )
+                  })
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Inbox className="h-5 w-5" />
+                  Invites sent
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-sm text-gray-700">
+                  Remaining invites: <span className="font-semibold">{remainingInvites}</span> / {inviteQuota}
+                </div>
+                {invites.length === 0 ? (
+                  <p className="text-sm text-gray-600">No invites sent yet.</p>
+                ) : (
+                  invites.slice(0, 6).map((invite) => (
+                    <div key={invite.id} className="p-3 border rounded-lg bg-white">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-800">Mentee {invite.menteeId}</p>
+                          <p className="text-xs text-gray-500">
+                            Sent {new Date(invite.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Badge>{invite.status}</Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Stats Cards */}
