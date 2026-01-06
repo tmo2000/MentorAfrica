@@ -17,6 +17,14 @@ export type AppUser = {
   email: string
   name: string
   role: UserRole
+  avatar?: string
+  isOnboarded?: boolean
+  appliedMentorId?: string | null
+  appliedMentorName?: string | null
+  applicationNote?: string | null
+  applicationStatus?: "none" | "draft" | "submitted" | "accepted" | "rejected"
+  profile?: Record<string, any>
+  mentorApprovalStatus?: "pending" | "approved" | "rejected"
 }
 
 type AuthContextType = {
@@ -25,6 +33,8 @@ type AuthContextType = {
   signUp: (args: { email: string; password: string; fullName: string; role: UserRole }) => Promise<{ ok: boolean; error?: string }>
   signIn: (args: { email: string; password: string }) => Promise<{ ok: boolean; error?: string }>
   signOut: () => Promise<void>
+  logout: () => Promise<void>
+  updateUser: (updates: Partial<AppUser>) => void
   refreshProfile: () => Promise<void>
 }
 
@@ -118,13 +128,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
+  const logout = async () => {
+    await signOut()
+  }
+
+  const updateUser = (updates: Partial<AppUser>) => {
+    setUser((prev) => (prev ? { ...prev, ...updates } : prev))
+  }
+
   async function refreshProfile() {
     setIsLoading(true)
     await loadProfile()
   }
 
   const value = useMemo(
-    () => ({ user, isLoading, signUp, signIn, signOut, refreshProfile }),
+    () => ({ user, isLoading, signUp, signIn, signOut, logout, updateUser, refreshProfile }),
     [user, isLoading]
   )
 
