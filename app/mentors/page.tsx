@@ -181,8 +181,11 @@ export default function MentorsPage() {
           {/* Results */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredMentors.map((mentor) => (
-              <MentorCard key={mentor.id} mentor={mentor} />
+              <Link key={mentor.id} href={`/mentors/${mentor.id}`} className="block">
+                <MentorCard mentor={mentor} />
+              </Link>
             ))}
+
           </div>
 
           {filteredMentors.length === 0 && (
