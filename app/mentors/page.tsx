@@ -36,7 +36,7 @@ export default function MentorsPage() {
       }
 
       const mapped: Mentor[] = (data ?? []).map((m: any) => ({
-        id: m.id,
+        id: String(m.user_id ?? m.id),
         name: m.name,
         bio: m.bio ?? "",
         location: m.location ?? "",

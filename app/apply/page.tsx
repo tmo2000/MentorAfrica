@@ -40,7 +40,11 @@ export default function CentralApplyPage() {
   useEffect(() => {
     const fetchMentor = async () => {
       if (acceptedInvite?.mentorId) {
-        const { data } = await supabase.from("mentors").select("name").eq("id", acceptedInvite.mentorId).maybeSingle()
+        const { data: byId } = await supabase.from("mentors").select("name").eq("id", acceptedInvite.mentorId).maybeSingle()
+        const { data: byUserId } = byId
+          ? { data: null }
+          : await supabase.from("mentors").select("name").eq("user_id", acceptedInvite.mentorId).maybeSingle()
+        const data = byId ?? byUserId
         if (data?.name) setMentorName(data.name)
       }
     }

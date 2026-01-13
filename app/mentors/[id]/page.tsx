@@ -21,7 +21,7 @@ import { MapPin, Clock, Star, ArrowLeft, CheckCircle, Info, AlertTriangle } from
 export default function MentorDetailsPage() {
   const params = useParams()
   const router = useRouter()
-  const mentorId = params.id as string
+  const mentorId = Array.isArray(params.id) ? params.id[0] : (params.id as string | undefined)
   const { user } = useAuth()
 
   const [mentor, setMentor] = useState<Mentor | null>(null)
@@ -39,7 +39,13 @@ export default function MentorDetailsPage() {
 
     ;(async () => {
       setLoading(true)
-      const { data, error } = await supabase.from("mentors").select("*").eq("id", mentorId).single()
+      const { data: byId, error: byIdError } = await supabase.from("mentors").select("*").eq("id", mentorId).maybeSingle()
+
+      const { data: byUserId, error: byUserError } =
+        byId ? { data: null, error: null } : await supabase.from("mentors").select("*").eq("user_id", mentorId).maybeSingle()
+
+      const data = byId ?? byUserId
+      const error = data ? null : byUserError ?? byIdError
 
       if (error || !data) {
         console.error("Supabase mentor fetch error:", error)
@@ -49,7 +55,7 @@ export default function MentorDetailsPage() {
       }
 
       const mapped: Mentor = {
-        id: data.id,
+        id: String(data.user_id ?? data.id),
         name: data.name,
         bio: data.bio ?? "",
         location: data.location ?? "",
